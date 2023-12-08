@@ -24,20 +24,21 @@ class PhysicsEntity:
         return pygame.Rect(self.pos, self.size)
 
     def update(self, keys_pressed=None):
+        # make acceleration equal movement_acceleration and handle jumping dependent on gravity direction
         if keys_pressed:
-            if self.gravity[1] > 0:
-                print(self.collisions)
-                if self.collisions['bottom']:
-                    if keys_pressed[self.keys['up']]:
-                        self.velocity[1] = -self.jump_velocity
-                    if keys_pressed[self.keys['right']]:
-                        self.acceleration[0] = self.movement_acceleration
-                    elif keys_pressed[self.keys['left']]:
-                        self.acceleration[0] = -self.movement_acceleration
-                    else:
-                        self.acceleration[0] = 0
+            if self.gravity[1] != 0:
+                if (self.gravity[1] > 0 and self.collisions['bottom']) or (self.gravity[1] < 0 and self.collisions['top']):
+                    self.velocity[1] = -self.jump_velocity if keys_pressed[self.keys['up']] else (self.jump_velocity if keys_pressed[self.keys['down']] else 0)
+                    self.acceleration[0] = self.movement_acceleration if keys_pressed[self.keys['right']] else (-self.movement_acceleration if keys_pressed[self.keys['left']] else 0)
                 else:
                     self.acceleration[0] = 0
+
+            if self.gravity[0] != 0:
+                if (self.gravity[0] > 0 and self.collisions['right']) or (self.gravity[0] < 0 and self.collisions['left']):
+                    self.velocity[0] = -self.jump_velocity if keys_pressed[self.keys['left']] else (self.jump_velocity if keys_pressed[self.keys['right']] else 0)
+                    self.acceleration[1] = self.movement_acceleration if keys_pressed[self.keys['down']] else (-self.movement_acceleration if keys_pressed[self.keys['up']] else 0)
+                else:
+                    self.acceleration[1] = 0
 
         # calculate velocities from acceleration accounting for friction
         def apply_friction_to_acceleration(acceleration, friction_coefficient, mass=1):

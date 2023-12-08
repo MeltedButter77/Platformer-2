@@ -17,7 +17,7 @@ class Game:
         self.crate = PhysicsEntity(self, 'block', (500, 50), (12, 12), gravity=(0, 0.1))
 
         self.blocks = [pygame.Rect((0, 750), (800, 50)),  # bottom
-                        pygame.Rect((750, 0), (50, 800)),  # right
+                        pygame.Rect((0, 0), (800, 50)),  # top
                         pygame.Rect((0, 0), (50, 800)),  # left
                         pygame.Rect((750, 0), (50, 800)),  # right
                         # pygame.Rect((400, 700), (50, 50))
