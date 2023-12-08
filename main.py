@@ -13,18 +13,25 @@ class Game:
 
         self.clock = pygame.time.Clock()
 
-        self.player = PhysicsEntity(self, 'player', (50, 50), (12, 12), gravity=(0, 0.1))
+        self.player = PhysicsEntity(self, 'player', (50, 600), (12, 12), gravity=(0, 0.1))
+        self.crate = PhysicsEntity(self, 'block', (500, 50), (12, 12), gravity=(0, 0.1))
+
         self.blocks = [pygame.Rect((0, 750), (800, 50)),  # bottom
-                       pygame.Rect((750, 0), (50, 800)),  # right
-                       pygame.Rect((0, 0), (50, 800)),  # left
                         pygame.Rect((750, 0), (50, 800)),  # right
-                        pygame.Rect((400, 700), (50, 50))]
+                        pygame.Rect((0, 0), (50, 800)),  # left
+                        pygame.Rect((750, 0), (50, 800)),  # right
+                        # pygame.Rect((400, 700), (50, 50))
+                        ]
 
     def run(self):
         while True:
             self.screen.fill((0, 0, 100))
 
-            self.player.update((1, 0))
+            self.crate.update()
+            self.crate.render(self.screen)
+
+            pressed = pygame.key.get_pressed()
+            self.player.update(pressed)
             self.player.render(self.screen)
 
             for event in pygame.event.get():
