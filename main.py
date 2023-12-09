@@ -1,7 +1,7 @@
 import sys
-
 import pygame
 from entities import PhysicsEntity
+import entities
 
 
 class Game:
@@ -13,9 +13,10 @@ class Game:
 
         self.clock = pygame.time.Clock()
 
-        self.player = PhysicsEntity(self, 'player', (50, 600), (12, 12), gravity=(0, 0.1))
-        self.crate = PhysicsEntity(self, 'block', (500, 50), (12, 12), gravity=(0, 0.1))
-
+        self.entities = [
+            PhysicsEntity(self, 'player', (50, 600), (12, 12), gravity=(0, 0.1)),
+            PhysicsEntity(self, 'crate', (500, 50), (12, 12), gravity=(0, 0.1))
+        ]
         self.blocks = [pygame.Rect((0, 750), (800, 50)),  # bottom
                         pygame.Rect((0, 0), (800, 50)),  # top
                         pygame.Rect((0, 0), (50, 800)),  # left
@@ -27,21 +28,16 @@ class Game:
         while True:
             self.screen.fill((0, 0, 100))
 
-            self.crate.update()
-            self.crate.render(self.screen)
-
             pressed = pygame.key.get_pressed()
-            self.player.update(pressed)
-            self.player.render(self.screen)
+            for entity in self.entities:
+                entity.update(pressed)
+                entity.render(self.screen)
+            entities.resolve_entity_collisions(self.entities)
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_DOWN:
-
-                        print("down")
 
             pygame.display.update()
             self.clock.tick(60)
