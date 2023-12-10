@@ -1,6 +1,22 @@
 import pygame
 
 
+class Block(pygame.sprite.Sprite):
+    def __init__(self, game, position, size):
+        super().__init__()
+
+        game.blocks.add(self)
+        game.all_sprites.add(self)
+
+        # Image
+        self.image = pygame.Surface(size)
+        self.image.fill('blue')
+
+        # Rect
+        self.rect = self.image.get_rect(topleft=position)
+        self.old_rect = self.rect.copy()
+
+
 class PhysicsEntity(pygame.sprite.Sprite):
     def __init__(self, sprite_groups, game, entity_type, position, size, gravity=(0, 0.1)):
         super().__init__()
@@ -24,14 +40,16 @@ class PhysicsEntity(pygame.sprite.Sprite):
         # Movement (Inputted)
         self.position = pygame.Vector2(position)
         self.gravity = pygame.Vector2(gravity)
+
+        # Movement (Empty)
         self.velocity = pygame.Vector2(float(0), float(0))
         self.acceleration = pygame.Vector2(float(0), float(0))
         self.collisions = {'top': False, 'left': False, 'bottom': False, 'right': False}
 
         # Movement (Hard-Coded)
-        self.terminal_velocity = pygame.Vector2(5, 5)
-        self.friction = 0.2
-        self.movement_acceleration = 0.5
+        self.terminal_velocity = pygame.Vector2(3, 5)
+        self.drag_factor = 0.85  # A value less than 1 to reduce velocity
+        self.movement_acceleration = 0.4
         self.jump_velocity = 3.1
 
         # Control
@@ -97,22 +115,22 @@ class PhysicsEntity(pygame.sprite.Sprite):
                         self.rect.top = sprite.rect.bottom
                         self.position.y = self.rect.y
 
-    def wall_drag(self):
-        drag_factor = 0.90  # A value less than 1 to reduce velocity
-        near_zero_threshold = 0.15  # Velocity threshold below which it is set to zero
+    def block_drag(self):
+        near_zero_threshold = 0.2  # Velocity threshold below which it is set to zero
 
         if self.collisions['bottom'] or self.collisions['top']:
-            self.velocity.x *= drag_factor
-            if abs(self.velocity.x) < near_zero_threshold and self.velocity.x != 0:
+            self.velocity.x *= self.drag_factor
+            if abs(self.velocity.x) < near_zero_threshold and self.velocity.x != 0 and self.acceleration.x == 0:
                 self.velocity.x = 0
 
         if self.collisions['left'] or self.collisions['right']:
-            self.velocity.y *= drag_factor
-            if abs(self.velocity.y) < near_zero_threshold and self.velocity.y != 0:
+            self.velocity.y *= self.drag_factor
+            if abs(self.velocity.y) < near_zero_threshold and self.velocity.y != 0 and self.acceleration.y == 0:
                 self.velocity.y = 0
 
     def update(self):
-        self.old_rect = self.rect.copy() # previous frame
+        # Save Previous Frame
+        self.old_rect = self.rect.copy()
 
         # Calculate new velocities and accelerations from user input
         self.input()
@@ -134,4 +152,4 @@ class PhysicsEntity(pygame.sprite.Sprite):
         self.collision('vertical')
 
         # Decrease velocities depending on collisions
-        self.wall_drag()
+        self.block_drag()

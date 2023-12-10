@@ -1,35 +1,36 @@
 import sys
 import pygame
-from entities import PhysicsEntity
-import blocks
+import entities
 
 
 class Game:
     def __init__(self):
+        # Pygame Setup
         pygame.init()
-
         pygame.display.set_caption("Platformer!")
         self.screen = pygame.display.set_mode((800, 800))
-
         self.clock = pygame.time.Clock()
 
+        # Sprite Groups
         self.all_sprites = pygame.sprite.Group()
         self.players = pygame.sprite.Group()
-        self.crates = pygame.sprite.Group()
-        self.walls = pygame.sprite.Group()
+        self.objects = pygame.sprite.Group()
+        self.blocks = pygame.sprite.Group()
 
-        self.entities = [
-            PhysicsEntity([self.crates], self, 'crate', (500, 50), (12, 12), gravity=(0, 0.1)),
-            PhysicsEntity([self.players], self, 'player', (100, 600), (12, 12), gravity=(0, 0.1))
-        ]
+        # Physics Entities
+        entities.PhysicsEntity([self.objects], self, 'player', (500, 50), (12, 12), gravity=(0, 0.1)),
+        entities.PhysicsEntity([self.players], self, 'player', (100, 600), (12, 12), gravity=(0, 0.1))
 
-        self.blocks = [
-            blocks.Block(self, (0, 750), (800, 50)),  # bottom
-            blocks.Block(self, (0, 0), (800, 50)),  # top
-            blocks.Block(self, (400, 720), (400, 10)),  # middle
-            blocks.Block(self, (0, 0), (50, 800)),  # left
-            blocks.Block(self, (750, 0), (50, 800)),  # right
+        # Map wall Entities
+        block_info = [
+            (0, 750, 800, 50),  # bottom
+            (0, 0, 800, 50),  # top
+            (400, 720, 400, 10),  # middle
+            (0, 0, 50, 800),  # left
+            (750, 0, 50, 800),  # right
         ]
+        for info in block_info:
+            entities.Block(self, (info[0], info[1]), (info[2], info[3]))
 
     def run(self):
         while True:
