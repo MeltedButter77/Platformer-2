@@ -8,6 +8,9 @@ class Block(pygame.sprite.Sprite):
         game.blocks.add(self)
         game.all_sprites.add(self)
 
+        self.size = pygame.Vector2(size)
+        self.position = pygame.Vector2(position)
+
         # Image
         self.image = pygame.Surface(size)
         self.image.fill('blue')
@@ -15,6 +18,12 @@ class Block(pygame.sprite.Sprite):
         # Rect
         self.rect = self.image.get_rect(topleft=position)
         self.old_rect = self.rect.copy()
+
+    def update(self, *args, **kwargs):
+        self.old_rect = self.rect.copy() # save previous frame
+
+        self.image = pygame.Surface(self.size)
+        self.rect = self.image.get_rect(topleft=self.position)
 
 
 class PhysicsEntity(pygame.sprite.Sprite):

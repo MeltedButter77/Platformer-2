@@ -37,7 +37,9 @@ class Game:
             self.screen.fill((0, 0, 100))
 
             self.all_sprites.update()
-            self.all_sprites.draw(self.screen)
+            self.blocks.draw(self.screen)
+            self.objects.draw(self.screen)
+            self.players.draw(self.screen)
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
