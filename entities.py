@@ -62,7 +62,8 @@ class PhysicsEntity(pygame.sprite.Sprite):
             self.acceleration = pygame.Vector2(0, 0)
 
     def collision(self, direction):
-        collision_sprites = pygame.sprite.spritecollide(self, self.game.walls, False)
+        collision_sprites = pygame.sprite.spritecollide(self, self.game.all_sprites, False)
+        collision_sprites.remove(self)
         if collision_sprites:
             if direction == 'horizontal':
                 for sprite in collision_sprites:
@@ -96,7 +97,7 @@ class PhysicsEntity(pygame.sprite.Sprite):
                         self.rect.top = sprite.rect.bottom
                         self.position.y = self.rect.y
 
-    def ground_drag(self):
+    def wall_drag(self):
         drag_factor = 0.90  # A value less than 1 to reduce velocity
         near_zero_threshold = 0.15  # Velocity threshold below which it is set to zero
 
@@ -133,4 +134,4 @@ class PhysicsEntity(pygame.sprite.Sprite):
         self.collision('vertical')
 
         # Decrease velocities depending on collisions
-        self.ground_drag()
+        self.wall_drag()

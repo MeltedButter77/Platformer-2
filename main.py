@@ -19,7 +19,7 @@ class Game:
         self.walls = pygame.sprite.Group()
 
         self.entities = [
-            PhysicsEntity([self.crates, self.walls], self, 'crate', (500, 50), (12, 12), gravity=(0, 0.1)),
+            PhysicsEntity([self.crates], self, 'crate', (500, 50), (12, 12), gravity=(0, 0.1)),
             PhysicsEntity([self.players], self, 'player', (100, 600), (12, 12), gravity=(0, 0.1))
         ]
 
