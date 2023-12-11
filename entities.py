@@ -8,11 +8,30 @@ class Block(pygame.sprite.Sprite):
         game.blocks.add(self)
         game.all_sprites.add(self)
 
-        self.position = pygame.Vector2(position)
-
         # Image
         self.image = pygame.Surface(size)
         self.fill_colour = 'blue'
+        self.image.fill(self.fill_colour)
+
+        # Rect
+        self.rect = self.image.get_rect(topleft=position)
+        self.old_rect = self.rect.copy()
+
+
+class Portal(pygame.sprite.Sprite):
+    def __init__(self, game, position, size, portal_type):
+        super().__init__()
+
+        if portal_type == 'in':
+            game.in_portals.add(self)
+        if portal_type == 'out':
+            game.out_portals.add(self)
+        game.all_portals.add(self)
+        game.all_sprites.add(self)
+
+        # Image
+        self.image = pygame.Surface(size)
+        self.fill_colour = 'green'
         self.image.fill(self.fill_colour)
 
         # Rect
@@ -35,6 +54,16 @@ class PhysicsEntity(pygame.sprite.Sprite):
         self.image = pygame.Surface(size)
         self.image.fill('red')
 
+        # Controls
+        self.keys = None
+
+        # Type-dependant variables
+        if game.players in sprite_groups:
+            self.keys = {'up': pygame.K_w, 'left': pygame.K_a, 'down': pygame.K_s, 'right': pygame.K_d}
+            self.image.fill('red')
+        if game.objects in sprite_groups:
+            self.image.fill('orange')
+
         # Rect
         self.rect = self.image.get_rect(topleft=position)
         self.old_rect = self.rect.copy()
@@ -54,12 +83,6 @@ class PhysicsEntity(pygame.sprite.Sprite):
         self.movement_acceleration = 0.4
         self.jump_velocity = 3.1
         self.velocity_transfer_percentage = 0.75 # amount of velocity transferred when colliding with an object
-
-        # Controls
-        if game.players in sprite_groups:
-            self.keys = {'up': pygame.K_w, 'left': pygame.K_a, 'down': pygame.K_s, 'right': pygame.K_d}
-        else:
-            self.keys = None
 
     def input(self):
         keys_pressed = pygame.key.get_pressed()
@@ -83,8 +106,23 @@ class PhysicsEntity(pygame.sprite.Sprite):
             self.acceleration = pygame.Vector2(0, 0)
 
     def collision(self, direction):
-        collision_sprites = pygame.sprite.spritecollide(self, self.game.all_sprites, False)
-        collision_sprites.remove(self)
+        collision_groups = [
+            self.game.blocks,
+            self.game.players,
+            self.game.objects,
+        ]
+
+        # Using a set to avoid duplicates
+        collision_sprites = set()
+
+        # Check collision with all groups and add to the set
+        for group in collision_groups:
+            for sprite in pygame.sprite.spritecollide(self, group, False):
+                if sprite != self:  # Exclude self from the results
+                    collision_sprites.add(sprite)
+
+        # If you need a list instead of a set, convert it back to a list
+        collision_sprites = list(collision_sprites)
 
         if not collision_sprites:
             return
