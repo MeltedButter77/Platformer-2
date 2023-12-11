@@ -18,8 +18,8 @@ class Game:
         self.blocks = pygame.sprite.Group()
 
         # Physics Entities
-        entities.PhysicsEntity([self.objects], self, 'player', (500, 50), (12, 12), gravity=(0, 0.1)),
-        entities.PhysicsEntity([self.players], self, 'player', (100, 600), (12, 12), gravity=(0, 0.1))
+        entities.PhysicsEntity([self.objects], self, (720, 300), (12, 12), gravity=(0, 0.1)),
+        entities.PhysicsEntity([self.players], self, (100, 600), (12, 12), gravity=(0, 0.1))
 
         # Map wall Entities
         block_info = [

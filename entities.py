@@ -21,7 +21,7 @@ class Block(pygame.sprite.Sprite):
 
 
 class PhysicsEntity(pygame.sprite.Sprite):
-    def __init__(self, sprite_groups, game, entity_type, position, size, gravity=(0, 0.1)):
+    def __init__(self, sprite_groups, game, position, size, gravity=(0, 0.1)):
         super().__init__()
         
         game.all_sprites.add(self)
@@ -30,7 +30,6 @@ class PhysicsEntity(pygame.sprite.Sprite):
 
         # Setup
         self.game = game
-        self.type = entity_type
 
         # Image
         self.image = pygame.Surface(size)
@@ -54,9 +53,10 @@ class PhysicsEntity(pygame.sprite.Sprite):
         self.drag_factor = 0.85  # A value less than 1 to reduce velocity
         self.movement_acceleration = 0.4
         self.jump_velocity = 3.1
+        self.velocity_transfer_percentage = 0.75 # amount of velocity transferred when colliding with an object
 
-        # Control
-        if entity_type == 'player':
+        # Controls
+        if game.players in sprite_groups:
             self.keys = {'up': pygame.K_w, 'left': pygame.K_a, 'down': pygame.K_s, 'right': pygame.K_d}
         else:
             self.keys = None
@@ -85,38 +85,49 @@ class PhysicsEntity(pygame.sprite.Sprite):
     def collision(self, direction):
         collision_sprites = pygame.sprite.spritecollide(self, self.game.all_sprites, False)
         collision_sprites.remove(self)
-        if collision_sprites:
-            if direction == 'horizontal':
-                for sprite in collision_sprites:
-                    # Check collision on the right
-                    if self.rect.right >= sprite.rect.left and self.old_rect.right <= sprite.old_rect.left:
-                        self.collisions['right'] = True
-                        self.velocity.x = 0
-                        self.rect.right = sprite.rect.left
-                        self.position.x = self.rect.x
 
-                    # Check collision on the left
-                    if self.rect.left <= sprite.rect.right and self.old_rect.left >= sprite.old_rect.right:
-                        self.collisions['left'] = True
-                        self.velocity.x = 0
-                        self.rect.left = sprite.rect.right
-                        self.position.x = self.rect.x
+        if not collision_sprites:
+            return
 
-            if direction == 'vertical':
-                for sprite in collision_sprites:
-                    # Check collision on the bottom
-                    if self.rect.bottom >= sprite.rect.top and self.old_rect.bottom <= sprite.old_rect.top:
-                        self.collisions['bottom'] = True
-                        self.velocity.y = 0
-                        self.rect.bottom = sprite.rect.top
-                        self.position.y = self.rect.y
+        if direction == 'horizontal':
+            for sprite in collision_sprites:
+                # If colliding with an object, transfer velocity
+                if self.game.objects.has(sprite):
+                    sprite.velocity = (self.velocity.copy() * self.velocity_transfer_percentage)
 
-                    # Check collision on the top
-                    if self.rect.top <= sprite.rect.bottom and self.old_rect.top >= sprite.old_rect.bottom:
-                        self.collisions['top'] = True
-                        self.velocity.y = 0
-                        self.rect.top = sprite.rect.bottom
-                        self.position.y = self.rect.y
+                # Check collision on the right
+                if self.rect.right >= sprite.rect.left and self.old_rect.right <= sprite.old_rect.left:
+                    self.collisions['right'] = True
+                    self.velocity.x = 0
+                    self.rect.right = sprite.rect.left
+                    self.position.x = self.rect.x
+
+                # Check collision on the left
+                if self.rect.left <= sprite.rect.right and self.old_rect.left >= sprite.old_rect.right:
+                    self.collisions['left'] = True
+                    self.velocity.x = 0
+                    self.rect.left = sprite.rect.right
+                    self.position.x = self.rect.x
+
+        if direction == 'vertical':
+            for sprite in collision_sprites:
+                # If colliding with an object, transfer velocity
+                if self.game.objects.has(sprite):
+                    sprite.velocity = (self.velocity.copy() * self.velocity_transfer_percentage)
+
+                # Check collision on the bottom
+                if self.rect.bottom >= sprite.rect.top and self.old_rect.bottom <= sprite.old_rect.top:
+                    self.collisions['bottom'] = True
+                    self.velocity.y = 0
+                    self.rect.bottom = sprite.rect.top
+                    self.position.y = self.rect.y
+
+                # Check collision on the top
+                if self.rect.top <= sprite.rect.bottom and self.old_rect.top >= sprite.old_rect.bottom:
+                    self.collisions['top'] = True
+                    self.velocity.y = 0
+                    self.rect.top = sprite.rect.bottom
+                    self.position.y = self.rect.y
 
     def block_drag(self):
         near_zero_threshold = 0.2  # Velocity threshold below which it is set to zero
@@ -156,4 +167,3 @@ class PhysicsEntity(pygame.sprite.Sprite):
         self.position.y += self.velocity.y + self.gravity.y
         self.rect.y = self.position.y
         self.collision('vertical')
-        print(self.image)

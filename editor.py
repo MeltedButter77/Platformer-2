@@ -22,8 +22,8 @@ class Editor:
         self.blocks = pygame.sprite.Group()
 
         # Physics Entities
-        entities.PhysicsEntity([self.objects], self, 'object', (500, 50), (12, 12), gravity=(0, 0.1)),
-        entities.PhysicsEntity([self.players], self, 'player', (100, 600), (12, 12), gravity=(0, 0.1))
+        entities.PhysicsEntity([self.objects], self, (500, 50), (12, 12), gravity=(0, 0.1)),
+        entities.PhysicsEntity([self.players], self, (100, 600), (12, 12), gravity=(0, 0.1))
 
         # Map wall Entities
         block_info = [
@@ -70,11 +70,15 @@ class Editor:
                         block.rect = pygame.Rect(top_left, (width, height))
                         block.image = pygame.Surface(block.rect.size)
                         block.image.fill(block.fill_colour)
-
                 if event.type == pygame.MOUSEBUTTONUP:
                     block = self.blocks.sprites()[-1]
                     if block.rect.size[0] < 5 or block.rect.size[1] < 5:
                         block.kill()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_z:
+                        self.blocks.sprites()[-1].kill()
+                    if event.key == pygame.K_SPACE:
+                        print(self.blocks)
 
             pygame.display.update()
             self.clock.tick(60)
