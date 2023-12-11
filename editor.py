@@ -78,7 +78,8 @@ class Editor:
                     if event.key == pygame.K_z:
                         self.blocks.sprites()[-1].kill()
                     if event.key == pygame.K_SPACE:
-                        print(self.blocks)
+                        for block in self.blocks.sprites():
+                            print(str(block.rect.topleft) + ", " + str(block.rect.size) + ",")
 
             pygame.display.update()
             self.clock.tick(60)
