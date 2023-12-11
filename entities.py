@@ -8,22 +8,16 @@ class Block(pygame.sprite.Sprite):
         game.blocks.add(self)
         game.all_sprites.add(self)
 
-        self.size = pygame.Vector2(size)
         self.position = pygame.Vector2(position)
 
         # Image
         self.image = pygame.Surface(size)
-        self.image.fill('blue')
+        self.fill_colour = 'blue'
+        self.image.fill(self.fill_colour)
 
         # Rect
         self.rect = self.image.get_rect(topleft=position)
         self.old_rect = self.rect.copy()
-
-    def update(self, *args, **kwargs):
-        self.old_rect = self.rect.copy() # save previous frame
-
-        self.image = pygame.Surface(self.size)
-        self.rect = self.image.get_rect(topleft=self.position)
 
 
 class PhysicsEntity(pygame.sprite.Sprite):
@@ -149,6 +143,9 @@ class PhysicsEntity(pygame.sprite.Sprite):
         self.velocity.x = max(min(self.velocity.x, self.terminal_velocity.x), -self.terminal_velocity.x)
         self.velocity.y = max(min(self.velocity.y, self.terminal_velocity.y), -self.terminal_velocity.y)
 
+        # Decrease velocities depending on collisions
+        self.block_drag()
+
         # Reset colliding bools before calculating collisions (and after calculating input())
         self.collisions = {'top': False, 'left': False, 'bottom': False, 'right': False}
 
@@ -159,6 +156,4 @@ class PhysicsEntity(pygame.sprite.Sprite):
         self.position.y += self.velocity.y + self.gravity.y
         self.rect.y = self.position.y
         self.collision('vertical')
-
-        # Decrease velocities depending on collisions
-        self.block_drag()
+        print(self.image)

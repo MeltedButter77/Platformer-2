@@ -41,7 +41,6 @@ class Editor:
         while True:
             self.screen.fill((0, 0, 100))
 
-            self.blocks.update() # update blocks so their size can change as we create blocks
             self.blocks.draw(self.screen)
             self.objects.draw(self.screen)
             self.players.draw(self.screen)
@@ -51,38 +50,31 @@ class Editor:
                     pygame.quit()
                     sys.exit()
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    entities.Block(self, event.pos, (1, 1))
+                    entities.Block(self, event.pos, (0, 0))
                     new_block_origin = pygame.Vector2(event.pos)
                 if event.type == pygame.MOUSEMOTION:
                     if event.buttons[0] and new_block_origin:
                         block = self.blocks.sprites()[-1]
-                        mouse_pos = pygame.Vector2(event.pos)
-                        new_size = pygame.Vector2(mouse_pos - new_block_origin)
 
-                        # Bottom Right
-                        if new_size.x > 0 and new_size.y > 0:
-                            block.size = new_size
+                        mouse_pos = pygame.Vector2(pygame.mouse.get_pos())
 
-                        # Top Right
-                        elif new_size.x > 0 > new_size.y:
-                            block.position.y = mouse_pos.y
-                            block.size.x = new_size.x
-                            block.size.y = -new_size.y
+                        # Determine the top-left and bottom-right points
+                        top_left = (min(new_block_origin[0], mouse_pos[0]), min(new_block_origin[1], mouse_pos[1]))
+                        bottom_right = (max(new_block_origin[0], mouse_pos[0]), max(new_block_origin[1], mouse_pos[1]))
 
-                        # Bottom Left
-                        elif new_size.x < 0 < new_size.y:
-                            block.position.x = mouse_pos.x
-                            block.size.x = -new_size.x
-                            block.size.y = new_size.y
+                        # Calculate width and height
+                        width = bottom_right[0] - top_left[0]
+                        height = bottom_right[1] - top_left[1]
 
-                        # Top Left
-                        elif new_size.x < 0 and new_size.y < 0:
-                            block.position = mouse_pos
-                            block.size = -new_size
+                        # Create new rects and images and update image colour
+                        block.rect = pygame.Rect(top_left, (width, height))
+                        block.image = pygame.Surface(block.rect.size)
+                        block.image.fill(block.fill_colour)
+
                 if event.type == pygame.MOUSEBUTTONUP:
                     block = self.blocks.sprites()[-1]
-                    if block.size.x < 5 or block.size.y < 5:
-                        self.blocks.remove(block)
+                    if block.rect.size[0] < 5 or block.rect.size[1] < 5:
+                        block.kill()
 
             pygame.display.update()
             self.clock.tick(60)
