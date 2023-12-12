@@ -54,6 +54,11 @@ class PhysicsEntity(pygame.sprite.Sprite):
         self.game = game
         self.portal_collisions = {'in': False, 'out': False}
         self.new_entity = None
+        self.collision_groups = [
+            self.game.blocks,
+            self.game.players,
+            self.game.objects,
+        ]
 
         # Image
         self.image = pygame.Surface(size)
@@ -80,7 +85,7 @@ class PhysicsEntity(pygame.sprite.Sprite):
         # Movement (Empty)
         self.velocity = pygame.Vector2(float(0), float(0))
         self.acceleration = pygame.Vector2(float(0), float(0))
-        self.collisions = {'top': False, 'left': False, 'bottom': False, 'right': False}
+        self.touching = {'top': False, 'left': False, 'bottom': False, 'right': False}
 
         # Movement (Hard-Coded)
         self.terminal_velocity = pygame.Vector2(3, 5)
@@ -97,7 +102,7 @@ class PhysicsEntity(pygame.sprite.Sprite):
         # make acceleration equal movement_acceleration and handle jumping dependent on gravity direction
         if self.keys:
             if self.gravity.y != 0:
-                grounded = (self.gravity.y > 0 and self.collisions['bottom']) or (self.gravity.y < 0 and self.collisions['top'])
+                grounded = (self.gravity.y > 0 and self.touching['bottom']) or (self.gravity.y < 0 and self.touching['top'])
 
                 if grounded:
                     if keys_pressed[self.keys['up']]:
@@ -115,8 +120,8 @@ class PhysicsEntity(pygame.sprite.Sprite):
                     self.acceleration.x = 0
 
             if self.gravity.x != 0:
-                grounded = (self.gravity.x > 0 and self.collisions['right']) or (
-                            self.gravity.x < 0 and self.collisions['left'])
+                grounded = (self.gravity.x > 0 and self.touching['right']) or (
+                            self.gravity.x < 0 and self.touching['left'])
 
                 if grounded:
                     if keys_pressed[self.keys['left']]:
@@ -136,18 +141,48 @@ class PhysicsEntity(pygame.sprite.Sprite):
         else:
             self.acceleration = pygame.Vector2(0, 0)
 
+    def calc_touching(self):
+
+        # Reset touching bools before calculating touching (and after calculating input())
+        self.touching = {'top': False, 'left': False, 'bottom': False, 'right': False}
+
+        def touching_collision(sprite1, sprite2):
+            # Expand both rects by 1 pixel in all directions to include touching
+            rect1 = sprite1.rect.inflate(1, 1)
+            rect2 = sprite2.rect.inflate(1, 1)
+            return rect1.colliderect(rect2)
+
+        touching_sprites = set()
+        for group in self.collision_groups:
+            for sprite in pygame.sprite.spritecollide(self, group, False, touching_collision):
+                if sprite != self:  # Exclude self from the results
+                    touching_sprites.add(sprite)
+        touching_sprites = list(touching_sprites)
+
+        for sprite in touching_sprites:
+            # Check collision on the right
+            if self.rect.right >= sprite.rect.left and self.old_rect.right <= sprite.old_rect.left:
+                self.touching['right'] = True
+
+            # Check collision on the left
+            if self.rect.left <= sprite.rect.right and self.old_rect.left >= sprite.old_rect.right:
+                self.touching['left'] = True
+
+            # Check collision on the bottom
+            if self.rect.bottom >= sprite.rect.top and self.old_rect.bottom <= sprite.old_rect.top:
+                self.touching['bottom'] = True
+
+            # Check collision on the top
+            if self.rect.top <= sprite.rect.bottom and self.old_rect.top >= sprite.old_rect.bottom:
+                self.touching['top'] = True
+
     def collision(self, direction):
-        collision_groups = [
-            self.game.blocks,
-            self.game.players,
-            self.game.objects,
-        ]
 
         # Using a set to avoid duplicates
         collision_sprites = set()
 
         # Check collision with all groups and add to the set
-        for group in collision_groups:
+        for group in self.collision_groups:
             for sprite in pygame.sprite.spritecollide(self, group, False):
                 if sprite != self:  # Exclude self from the results
                     collision_sprites.add(sprite)
@@ -155,45 +190,34 @@ class PhysicsEntity(pygame.sprite.Sprite):
         # If you need a list instead of a set, convert it back to a list
         collision_sprites = list(collision_sprites)
 
-        if not collision_sprites:
-            return
-
         if direction == 'horizontal':
             for sprite in collision_sprites:
-                # If colliding with an object, transfer velocity
+                # If colliding with an object, transfer velocity. This is not done for vertical as this does both axis
                 if self.game.objects.has(sprite):
                     sprite.velocity = (self.velocity.copy() * self.velocity_transfer_percentage)
 
                 # Check collision on the right
                 if self.rect.right >= sprite.rect.left and self.old_rect.right <= sprite.old_rect.left:
-                    self.collisions['right'] = True
                     self.velocity.x = 0
                     self.rect.right = sprite.rect.left
                     self.position.x = self.rect.x
 
                 # Check collision on the left
                 if self.rect.left <= sprite.rect.right and self.old_rect.left >= sprite.old_rect.right:
-                    self.collisions['left'] = True
                     self.velocity.x = 0
                     self.rect.left = sprite.rect.right
                     self.position.x = self.rect.x
 
         if direction == 'vertical':
             for sprite in collision_sprites:
-                # If colliding with an object, transfer velocity
-                if self.game.objects.has(sprite):
-                    sprite.velocity = (self.velocity.copy() * self.velocity_transfer_percentage)
-
                 # Check collision on the bottom
                 if self.rect.bottom >= sprite.rect.top and self.old_rect.bottom <= sprite.old_rect.top:
-                    self.collisions['bottom'] = True
                     self.velocity.y = 0
                     self.rect.bottom = sprite.rect.top
                     self.position.y = self.rect.y
 
                 # Check collision on the top
                 if self.rect.top <= sprite.rect.bottom and self.old_rect.top >= sprite.old_rect.bottom:
-                    self.collisions['top'] = True
                     self.velocity.y = 0
                     self.rect.top = sprite.rect.bottom
                     self.position.y = self.rect.y
@@ -234,18 +258,20 @@ class PhysicsEntity(pygame.sprite.Sprite):
                     self.new_entity.keys = self.keys # hand control over to new_entity
                     self.kill()
 
-    def block_drag(self):
+    def ground_drag(self):
         near_zero_threshold = 0.2  # Velocity threshold below which it is set to zero
 
-        if self.collisions['bottom'] or self.collisions['top']:
-            self.velocity.x *= self.drag_factor
-            if abs(self.velocity.x) < near_zero_threshold and self.velocity.x != 0 and self.acceleration.x == 0:
-                self.velocity.x = 0
+        if self.gravity.y != 0:
+            if self.touching['bottom'] or self.touching['top']:
+                self.velocity.x *= self.drag_factor
+                if abs(self.velocity.x) < near_zero_threshold and self.velocity.x != 0 and self.acceleration.x == 0:
+                    self.velocity.x = 0
 
-        if self.collisions['left'] or self.collisions['right']:
-            self.velocity.y *= self.drag_factor
-            if abs(self.velocity.y) < near_zero_threshold and self.velocity.y != 0 and self.acceleration.y == 0:
-                self.velocity.y = 0
+        if self.gravity.x != 0:
+            if self.touching['left'] or self.touching['right']:
+                self.velocity.y *= self.drag_factor
+                if abs(self.velocity.y) < near_zero_threshold and self.velocity.y != 0 and self.acceleration.y == 0:
+                    self.velocity.y = 0
 
     def update(self):
         # Save Previous Frame
@@ -260,10 +286,7 @@ class PhysicsEntity(pygame.sprite.Sprite):
         self.velocity.y = max(min(self.velocity.y, self.terminal_velocity.y), -self.terminal_velocity.y)
 
         # Decrease velocities depending on collisions
-        self.block_drag()
-
-        # Reset colliding bools before calculating collisions (and after calculating input())
-        self.collisions = {'top': False, 'left': False, 'bottom': False, 'right': False}
+        self.ground_drag()
 
         # Update Position and check collisions
         self.position.x += self.velocity.x + self.gravity.x
@@ -273,7 +296,8 @@ class PhysicsEntity(pygame.sprite.Sprite):
         self.rect.y = self.position.y
         self.collision('vertical')
 
-        print(self.collisions)
+        # Calc whether Object is touching any collision objects
+        self.calc_touching()
 
         # Check portals
         self.check_portals()
