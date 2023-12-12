@@ -19,7 +19,7 @@ class Block(pygame.sprite.Sprite):
 
 
 class Portal(pygame.sprite.Sprite):
-    def __init__(self, game, position, size, portal_type):
+    def __init__(self, game, position, size, portal_type, portal_id):
         super().__init__()
 
         if portal_type == 'in':
@@ -28,6 +28,9 @@ class Portal(pygame.sprite.Sprite):
             game.out_portals.add(self)
         game.all_portals.add(self)
         game.all_sprites.add(self)
+
+        # Portal Info
+        self.id = portal_id
 
         # Image
         self.image = pygame.Surface(size)
@@ -42,13 +45,15 @@ class Portal(pygame.sprite.Sprite):
 class PhysicsEntity(pygame.sprite.Sprite):
     def __init__(self, sprite_groups, game, position, size, gravity=(0, 0.1)):
         super().__init__()
-        
+
         game.all_sprites.add(self)
         for group in sprite_groups:
             group.add(self)
 
         # Setup
         self.game = game
+        self.portal_collisions = {'in': False, 'out': False}
+        self.new_entity = None
 
         # Image
         self.image = pygame.Surface(size)
@@ -83,6 +88,8 @@ class PhysicsEntity(pygame.sprite.Sprite):
         self.movement_acceleration = 0.4
         self.jump_velocity = 3.1
         self.velocity_transfer_percentage = 0.75 # amount of velocity transferred when colliding with an object
+        self.max_jumps = 2
+        self.jumps = 0
 
     def input(self):
         keys_pressed = pygame.key.get_pressed()
@@ -90,18 +97,42 @@ class PhysicsEntity(pygame.sprite.Sprite):
         # make acceleration equal movement_acceleration and handle jumping dependent on gravity direction
         if self.keys:
             if self.gravity.y != 0:
-                if (self.gravity.y > 0 and self.collisions['bottom']) or (self.gravity.y < 0 and self.collisions['top']):
-                    self.velocity.y = -self.jump_velocity if keys_pressed[self.keys['up']] else (self.jump_velocity if keys_pressed[self.keys['down']] else self.velocity.y)
-                    self.acceleration.x = self.movement_acceleration if keys_pressed[self.keys['right']] else (-self.movement_acceleration if keys_pressed[self.keys['left']] else 0)
+                grounded = (self.gravity.y > 0 and self.collisions['bottom']) or (self.gravity.y < 0 and self.collisions['top'])
+
+                if grounded:
+                    if keys_pressed[self.keys['up']]:
+                        self.velocity.y = -self.jump_velocity
+                    elif keys_pressed[self.keys['down']]:
+                        self.velocity.y = self.jump_velocity
+
+                    if keys_pressed[self.keys['right']]:
+                        self.acceleration.x = self.movement_acceleration
+                    elif keys_pressed[self.keys['left']]:
+                        self.acceleration.x = -self.movement_acceleration
+                    else:
+                        self.acceleration.x = 0
                 else:
                     self.acceleration.x = 0
 
             if self.gravity.x != 0:
-                if (self.gravity.x > 0 and self.collisions['right']) or (self.gravity.x < 0 and self.collisions['left']):
-                    self.velocity.x = -self.jump_velocity if keys_pressed[self.keys['left']] else (self.jump_velocity if keys_pressed[self.keys['right']] else self.velocity.x)
-                    self.acceleration.y = self.movement_acceleration if keys_pressed[self.keys['down']] else (-self.movement_acceleration if keys_pressed[self.keys['up']] else 0)
+                grounded = (self.gravity.x > 0 and self.collisions['right']) or (
+                            self.gravity.x < 0 and self.collisions['left'])
+
+                if grounded:
+                    if keys_pressed[self.keys['left']]:
+                        self.velocity.x = -self.jump_velocity
+                    elif keys_pressed[self.keys['right']]:
+                        self.velocity.x = self.jump_velocity
+
+                    if keys_pressed[self.keys['down']]:
+                        self.acceleration.y = self.movement_acceleration
+                    elif keys_pressed[self.keys['up']]:
+                        self.acceleration.y = -self.movement_acceleration
+                    else:
+                        self.acceleration.y = 0
                 else:
                     self.acceleration.y = 0
+
         else:
             self.acceleration = pygame.Vector2(0, 0)
 
@@ -167,6 +198,42 @@ class PhysicsEntity(pygame.sprite.Sprite):
                     self.rect.top = sprite.rect.bottom
                     self.position.y = self.rect.y
 
+    def check_portals(self):
+        collision_sprites = pygame.sprite.spritecollide(self, self.game.all_portals, False)
+
+        # If PhysicsObject isn't colliding with a portal
+        if not collision_sprites:
+            # If left an in portal and didn't enter another
+            if self.portal_collisions['in']:
+                self.new_entity.keys = self.keys # hand control over to new_entity
+                self.kill()
+
+        for portal in collision_sprites:
+            # if colliding with an 'in' portal
+            if portal in self.game.in_portals:
+                # If first time entered the portal
+                if not self.portal_collisions['in']:
+                    self.portal_collisions['in'] = True
+                    # search for 'out' portals with the same ID
+                    for out_portal in self.game.out_portals:
+                        if out_portal.id == portal.id:
+                            new_position = (out_portal.rect.x + self.rect.x - portal.rect.x, out_portal.rect.y + self.rect.y - portal.rect.y)
+                            self.new_entity = PhysicsEntity(self.groups(), self.game, new_position, self.rect.size, self.gravity)
+                            # Relative_position allows syncing of input and output PhysicsObjects when both are still alive
+                            self.new_entity.relative_position = pygame.Vector2(new_position) - pygame.Vector2(self.position.copy())
+                            self.new_entity.keys = None
+                            self.new_entity.velocity = self.velocity
+                            self.new_entity.acceleration = self.acceleration
+                else:
+                    self.new_entity.velocity = self.velocity
+                    self.new_entity.acceleration = self.acceleration
+                    self.new_entity.position = self.position + self.new_entity.relative_position
+            if portal in self.game.out_portals:
+                # If you left an 'in' portal
+                if self.portal_collisions['in']:
+                    self.new_entity.keys = self.keys # hand control over to new_entity
+                    self.kill()
+
     def block_drag(self):
         near_zero_threshold = 0.2  # Velocity threshold below which it is set to zero
 
@@ -205,3 +272,8 @@ class PhysicsEntity(pygame.sprite.Sprite):
         self.position.y += self.velocity.y + self.gravity.y
         self.rect.y = self.position.y
         self.collision('vertical')
+
+        print(self.collisions)
+
+        # Check portals
+        self.check_portals()

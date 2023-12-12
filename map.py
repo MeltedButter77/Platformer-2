@@ -61,8 +61,8 @@ def load_map(game, level_id):
 
         # Portals
         portal_info = [
-            (300, 720, 50, 30, 'in'),
-            (500, 720, 50, 30, 'out'),
+            (300, 720, 50, 30, 'in', 1),
+            (500, 720, 50, 30, 'out', 1),
         ]
 
         # Map wall Entities
@@ -74,6 +74,6 @@ def load_map(game, level_id):
         ]
 
     for info in portal_info:
-        entities.Portal(game, (info[0], info[1]), (info[2], info[3]), info[4])
+        entities.Portal(game, (info[0], info[1]), (info[2], info[3]), info[4], info[5])
     for info in block_info:
         entities.Block(game, (info[0], info[1]), (info[2], info[3]))
