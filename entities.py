@@ -93,8 +93,8 @@ class PhysicsEntity(pygame.sprite.Sprite):
         self.movement_acceleration = 0.4
         self.jump_velocity = 3.1
         self.velocity_transfer_percentage = 0.75 # amount of velocity transferred when colliding with an object
-        self.max_jumps = 2
-        self.jumps = 0
+        self.max_jumps = 2 # still to be implemented
+        self.jumps = 0 # still to be implemented
 
     def input(self):
         keys_pressed = pygame.key.get_pressed()
@@ -246,11 +246,11 @@ class PhysicsEntity(pygame.sprite.Sprite):
                             # Relative_position allows syncing of input and output PhysicsObjects when both are still alive
                             self.new_entity.relative_position = pygame.Vector2(new_position) - pygame.Vector2(self.position.copy())
                             self.new_entity.keys = None
-                            self.new_entity.velocity = self.velocity
-                            self.new_entity.acceleration = self.acceleration
+                            self.new_entity.velocity = self.velocity.copy()
+                            self.new_entity.acceleration = self.acceleration.copy()
                 else:
-                    self.new_entity.velocity = self.velocity
-                    self.new_entity.acceleration = self.acceleration
+                    self.new_entity.velocity = self.velocity.copy()
+                    self.new_entity.acceleration = self.acceleration.copy()
                     self.new_entity.position = self.position + self.new_entity.relative_position
             if portal in self.game.out_portals:
                 # If you left an 'in' portal

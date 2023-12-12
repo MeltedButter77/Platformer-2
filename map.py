@@ -53,7 +53,7 @@ def load_map(game, level_id):
 
     elif level_id == 2:
         # Players
-        entities.PhysicsEntity([game.players], game, (100, 600), (12, 12), gravity=(0, 0.1))
+        entities.PhysicsEntity([game.players], game, (320, 600), (12, 12), gravity=(0, 0.1))
         entities.PhysicsEntity([game.players], game, (600, 600), (12, 12), gravity=(0, 0.1))
 
         # Objects
@@ -61,8 +61,8 @@ def load_map(game, level_id):
 
         # Portals
         portal_info = [
-            (300, 720, 50, 30, 'in', 1),
-            (500, 720, 50, 30, 'out', 1),
+            (300, 670, 50, 80, 'in', 1),
+            (500, 670, 50, 80, 'out', 1),
         ]
 
         # Map wall Entities
