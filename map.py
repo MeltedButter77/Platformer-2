@@ -9,8 +9,8 @@ def load_map(game, level_id):
 
     if level_id == 1:
         # Players
-        entities.PhysicsEntity([game.players], game, (100, 600), (12, 12), gravity=(0, 0.1))
-        entities.PhysicsEntity([game.players], game, (600, 600), (12, 12), gravity=(0, 0.1))
+        entities.PhysicsEntity([game.players], game, (130, 640), (12, 12), gravity=(0, 0.1))
+        entities.PhysicsEntity([game.players], game, (600, 700), (12, 12), gravity=(0, 0.1))
 
         # Objects
         entities.PhysicsEntity([game.objects], game, (720, 300), (12, 12), gravity=(0, 0.1)),
