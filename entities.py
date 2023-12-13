@@ -93,10 +93,34 @@ class PhysicsEntity(pygame.sprite.Sprite):
         self.movement_acceleration = 0.4
         self.jump_velocity = 3.1
         self.velocity_transfer_percentage = 0.75 # amount of velocity transferred when colliding with an object
-        self.max_jumps = 2 # still to be implemented
-        self.jumps = 0 # still to be implemented
+        self.max_jumps = 1
+        self.jumps = 0
 
-    def input(self):
+    def event_input(self, event):
+        if event.type == pygame.KEYDOWN:
+            if self.keys:
+                # Jump logic
+                if self.jumps < self.max_jumps:
+                    if self.gravity.y != 0:
+                        if event.key == self.keys['up']:
+                            self.jumps += 1
+                            self.velocity.y = -self.jump_velocity
+                        elif event.key == self.keys['down']:
+                            self.jumps += 1
+                            self.velocity.y = self.jump_velocity
+
+                    if self.gravity.x != 0:
+                        if event.key == self.keys['left']:
+                            self.jumps += 1
+                            self.velocity.x = -self.jump_velocity
+                        elif event.key == self.keys['right']:
+                            self.jumps += 1
+                            self.velocity.x = self.jump_velocity
+            else:
+                self.acceleration = pygame.Vector2(0, 0)
+
+
+    def continuous_input(self):
         keys_pressed = pygame.key.get_pressed()
 
         # make acceleration equal movement_acceleration and handle jumping dependent on gravity direction
@@ -105,10 +129,7 @@ class PhysicsEntity(pygame.sprite.Sprite):
                 grounded = (self.gravity.y > 0 and self.touching['bottom']) or (self.gravity.y < 0 and self.touching['top'])
 
                 if grounded:
-                    if keys_pressed[self.keys['up']]:
-                        self.velocity.y = -self.jump_velocity
-                    elif keys_pressed[self.keys['down']]:
-                        self.velocity.y = self.jump_velocity
+                    self.jumps = 0
 
                     if keys_pressed[self.keys['right']]:
                         self.acceleration.x = self.movement_acceleration
@@ -124,10 +145,7 @@ class PhysicsEntity(pygame.sprite.Sprite):
                             self.gravity.x < 0 and self.touching['left'])
 
                 if grounded:
-                    if keys_pressed[self.keys['left']]:
-                        self.velocity.x = -self.jump_velocity
-                    elif keys_pressed[self.keys['right']]:
-                        self.velocity.x = self.jump_velocity
+                    self.jumps = 0
 
                     if keys_pressed[self.keys['down']]:
                         self.acceleration.y = self.movement_acceleration
@@ -278,7 +296,7 @@ class PhysicsEntity(pygame.sprite.Sprite):
         self.old_rect = self.rect.copy()
 
         # Calculate new velocities and accelerations from user input
-        self.input()
+        self.continuous_input()
 
         # Update velocity
         self.velocity += self.acceleration + self.gravity

@@ -36,6 +36,8 @@ class Game:
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
+                for physics_object in self.players.sprites():
+                    physics_object.event_input(event)
 
             pygame.display.update()
             self.clock.tick(60)
