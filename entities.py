@@ -67,9 +67,14 @@ class PhysicsEntity(pygame.sprite.Sprite):
         # Controls
         self.keys = None
 
+        # Carrying
+        self.pickup_range = 20
+        self.carried_sprite = None
+        self.carried_sprite_relative_distance = 0
+
         # Type-dependant variables
         if game.players in sprite_groups:
-            self.keys = {'up': pygame.K_w, 'left': pygame.K_a, 'down': pygame.K_s, 'right': pygame.K_d}
+            self.keys = {'up': pygame.K_w, 'left': pygame.K_a, 'down': pygame.K_s, 'right': pygame.K_d, 'pickup': pygame.K_SPACE}
             self.image.fill('red')
         if game.objects in sprite_groups:
             self.image.fill('orange')
@@ -97,28 +102,45 @@ class PhysicsEntity(pygame.sprite.Sprite):
         self.jumps = 0
 
     def event_input(self, event):
+
+        if not self.keys:
+            return
+
         if event.type == pygame.KEYDOWN:
-            if self.keys:
-                # Jump logic
-                if self.jumps < self.max_jumps:
-                    if self.gravity.y != 0:
-                        if event.key == self.keys['up']:
-                            self.jumps += 1
-                            self.velocity.y = -self.jump_velocity
-                        elif event.key == self.keys['down']:
-                            self.jumps += 1
-                            self.velocity.y = self.jump_velocity
 
-                    if self.gravity.x != 0:
-                        if event.key == self.keys['left']:
-                            self.jumps += 1
-                            self.velocity.x = -self.jump_velocity
-                        elif event.key == self.keys['right']:
-                            self.jumps += 1
-                            self.velocity.x = self.jump_velocity
-            else:
-                self.acceleration = pygame.Vector2(0, 0)
+            if event.key == self.keys['pickup']:
+                print("pickup")
+                # Calculate nearest_sprite
+                nearest_sprite = None
+                nearest_distance = float('inf')
+                for sprite in self.game.objects:
+                    distance = pygame.Vector2(self.rect.center).distance_to(pygame.Vector2(sprite.rect.center))
+                    if distance < nearest_distance:
+                        nearest_sprite = sprite
+                        nearest_distance = distance
 
+                if nearest_distance <= self.pickup_range:
+                    self.game.objects.remove(nearest_sprite)
+                    self.carried_sprite = nearest_sprite
+                    self.carried_sprite_relative_distance = nearest_sprite.position - self.position
+
+            # Jump logic
+            if self.jumps < self.max_jumps:
+                if self.gravity.y != 0:
+                    if event.key == self.keys['up']:
+                        self.jumps += 1
+                        self.velocity.y = -self.jump_velocity
+                    elif event.key == self.keys['down']:
+                        self.jumps += 1
+                        self.velocity.y = self.jump_velocity
+
+                if self.gravity.x != 0:
+                    if event.key == self.keys['left']:
+                        self.jumps += 1
+                        self.velocity.x = -self.jump_velocity
+                    elif event.key == self.keys['right']:
+                        self.jumps += 1
+                        self.velocity.x = self.jump_velocity
 
     def continuous_input(self):
         keys_pressed = pygame.key.get_pressed()
@@ -319,3 +341,8 @@ class PhysicsEntity(pygame.sprite.Sprite):
 
         # Check portals
         self.check_portals()
+
+        # Check carry
+        if self.carried_sprite:
+            self.carried_sprite.position = self.position + self.carried_sprite_relative_distance
+            self.game.screen.blit(self.carried_sprite.image, self.carried_sprite.position)
