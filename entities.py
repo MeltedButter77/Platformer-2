@@ -70,7 +70,7 @@ class PhysicsEntity(pygame.sprite.Sprite):
         # Carrying
         self.pickup_range = 20
         self.carried_sprite = None
-        self.carried_sprite_relative_distance = 0
+        self.carried_sprite_relative_distance = pygame.Vector2(0, 0)
 
         # Type-dependant variables
         if game.players in sprite_groups:
@@ -97,9 +97,10 @@ class PhysicsEntity(pygame.sprite.Sprite):
         self.drag_factor = 0.85  # A value less than 1 to reduce velocity
         self.movement_acceleration = 0.4
         self.jump_velocity = 3.1
-        self.velocity_transfer_percentage = 0.75 # amount of velocity transferred when colliding with an object
+        self.velocity_transfer_percentage = 0.75  # amount of velocity transferred when colliding with an object
         self.max_jumps = 1
         self.jumps = 0
+        self.jump_vel_carry_percentage = 0.8  # percentage of jump velocity retained when carrying another object
 
     def event_input(self, event):
 
@@ -109,38 +110,54 @@ class PhysicsEntity(pygame.sprite.Sprite):
         if event.type == pygame.KEYDOWN:
 
             if event.key == self.keys['pickup']:
-                print("pickup")
-                # Calculate nearest_sprite
-                nearest_sprite = None
-                nearest_distance = float('inf')
-                for sprite in self.game.objects:
-                    distance = pygame.Vector2(self.rect.center).distance_to(pygame.Vector2(sprite.rect.center))
-                    if distance < nearest_distance:
-                        nearest_sprite = sprite
-                        nearest_distance = distance
+                if self.carried_sprite:
 
-                if nearest_distance <= self.pickup_range:
-                    self.game.objects.remove(nearest_sprite)
-                    self.carried_sprite = nearest_sprite
-                    self.carried_sprite_relative_distance = nearest_sprite.position - self.position
+                    # Check if the object is colliding with anything
+                    for group in self.collision_groups:
+                        for sprite in pygame.sprite.spritecollide(self.carried_sprite, group, False):
+                            if sprite != self:
+                                print("Cant drop, colliding")
+                                return
+
+                    # drop entity
+                    self.game.objects.add(self.carried_sprite)
+                    self.carried_sprite = None
+                    self.carried_sprite_relative_distance = 0
+                else:
+                    # Calculate nearest_sprite
+                    nearest_sprite = None
+                    nearest_distance = float('inf')
+                    for sprite in self.game.objects:
+                        distance = pygame.Vector2(self.rect.center).distance_to(pygame.Vector2(sprite.rect.center))
+                        if distance < nearest_distance:
+                            nearest_sprite = sprite
+                            nearest_distance = distance
+
+                    if nearest_distance <= self.pickup_range:
+                        self.game.objects.remove(nearest_sprite)
+                        self.carried_sprite = nearest_sprite
+                        self.carried_sprite_relative_distance = nearest_sprite.position - self.position
 
             # Jump logic
             if self.jumps < self.max_jumps:
+                jump_velocity = self.jump_velocity
+                if self.carried_sprite:
+                    jump_velocity *= self.jump_vel_carry_percentage
                 if self.gravity.y != 0:
                     if event.key == self.keys['up']:
                         self.jumps += 1
-                        self.velocity.y = -self.jump_velocity
+                        self.velocity.y = -jump_velocity
                     elif event.key == self.keys['down']:
                         self.jumps += 1
-                        self.velocity.y = self.jump_velocity
+                        self.velocity.y = jump_velocity
 
                 if self.gravity.x != 0:
                     if event.key == self.keys['left']:
                         self.jumps += 1
-                        self.velocity.x = -self.jump_velocity
+                        self.velocity.x = -jump_velocity
                     elif event.key == self.keys['right']:
                         self.jumps += 1
-                        self.velocity.x = self.jump_velocity
+                        self.velocity.x = jump_velocity
 
     def continuous_input(self):
         keys_pressed = pygame.key.get_pressed()
@@ -314,35 +331,37 @@ class PhysicsEntity(pygame.sprite.Sprite):
                     self.velocity.y = 0
 
     def update(self):
-        # Save Previous Frame
-        self.old_rect = self.rect.copy()
+        if self.game.players.has(self) or self.game.objects.has(self):
+            # Save Previous Frame
+            self.old_rect = self.rect.copy()
 
-        # Calculate new velocities and accelerations from user input
-        self.continuous_input()
+            # Calculate new velocities and accelerations from user input
+            self.continuous_input()
 
-        # Update velocity
-        self.velocity += self.acceleration + self.gravity
-        self.velocity.x = max(min(self.velocity.x, self.terminal_velocity.x), -self.terminal_velocity.x)
-        self.velocity.y = max(min(self.velocity.y, self.terminal_velocity.y), -self.terminal_velocity.y)
+            # Update velocity
+            self.velocity += self.acceleration + self.gravity
+            self.velocity.x = max(min(self.velocity.x, self.terminal_velocity.x), -self.terminal_velocity.x)
+            self.velocity.y = max(min(self.velocity.y, self.terminal_velocity.y), -self.terminal_velocity.y)
 
-        # Decrease velocities depending on collisions
-        self.ground_drag()
+            # Decrease velocities depending on collisions
+            self.ground_drag()
 
-        # Update Position and check collisions
-        self.position.x += self.velocity.x + self.gravity.x
-        self.rect.x = self.position.x
-        self.collision('horizontal')
-        self.position.y += self.velocity.y + self.gravity.y
-        self.rect.y = self.position.y
-        self.collision('vertical')
+            # Update Position and check collisions
+            self.position.x += self.velocity.x + self.gravity.x
+            self.rect.x = round(self.position.x)
+            self.collision('horizontal')
+            self.position.y += self.velocity.y + self.gravity.y
+            self.rect.y = round(self.position.y)
+            self.collision('vertical')
 
-        # Calc whether Object is touching any collision objects
-        self.calc_touching()
+            # Calc whether Object is touching any collision objects
+            self.calc_touching()
 
-        # Check portals
-        self.check_portals()
+            # Check portals
+            self.check_portals()
 
-        # Check carry
-        if self.carried_sprite:
-            self.carried_sprite.position = self.position + self.carried_sprite_relative_distance
-            self.game.screen.blit(self.carried_sprite.image, self.carried_sprite.position)
+            # Check carry
+            if self.carried_sprite:
+                self.carried_sprite.position = self.position + self.carried_sprite_relative_distance
+                self.carried_sprite.rect.topleft = pygame.Vector2(round(self.carried_sprite.position.x), round(self.carried_sprite.position.y))
+                self.game.screen.blit(self.carried_sprite.image, self.carried_sprite.position)
