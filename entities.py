@@ -31,6 +31,8 @@ class Portal(pygame.sprite.Sprite):
 
         # Portal Info
         self.id = portal_id
+        self.type = portal_type
+        self.position = pygame.Vector2(position)
 
         # Image
         self.image = pygame.Surface(size)
@@ -43,7 +45,7 @@ class Portal(pygame.sprite.Sprite):
 
 
 class PhysicsEntity(pygame.sprite.Sprite):
-    def __init__(self, sprite_groups, game, position, size, gravity=(0, 0.1)):
+    def __init__(self, sprite_groups, game, position, size, colour, gravity=(0, 0.1)):
         super().__init__()
 
         game.all_sprites.add(self)
@@ -52,8 +54,7 @@ class PhysicsEntity(pygame.sprite.Sprite):
 
         # Setup
         self.game = game
-        self.portal_collisions = {'in': False, 'out': False}
-        self.new_entity = None
+        self.portal_entities = []
         self.collision_groups = [
             self.game.blocks,
             self.game.players,
@@ -62,7 +63,8 @@ class PhysicsEntity(pygame.sprite.Sprite):
 
         # Image
         self.image = pygame.Surface(size)
-        self.image.fill('red')
+        self.colour = colour
+        self.image.fill(colour)
 
         # Controls
         self.keys = None
@@ -75,9 +77,8 @@ class PhysicsEntity(pygame.sprite.Sprite):
         # Type-dependant variables
         if game.players in sprite_groups:
             self.keys = {'up': pygame.K_w, 'left': pygame.K_a, 'down': pygame.K_s, 'right': pygame.K_d, 'pickup': pygame.K_SPACE}
-            self.image.fill('red')
         if game.objects in sprite_groups:
-            self.image.fill('orange')
+            pass
 
         # Rect
         self.rect = self.image.get_rect(topleft=position)
@@ -282,38 +283,40 @@ class PhysicsEntity(pygame.sprite.Sprite):
     def check_portals(self):
         collision_sprites = pygame.sprite.spritecollide(self, self.game.all_portals, False)
 
-        # If PhysicsObject isn't colliding with a portal
+        # Once physicObject leaves portal, re-enable its calculation
         if not collision_sprites:
-            # If left an in portal and didn't enter another
-            if self.portal_collisions['in']:
-                self.new_entity.keys = self.keys # hand control over to new_entity
-                self.kill()
+            for entity in self.portal_entities:
+                entity.kill()
+            self.portal_entities = []
+            if self.game.no_portal_interact.has(self):
+                self.game.no_portal_interact.remove(self)
+            return
 
-        for portal in collision_sprites:
-            # if colliding with an 'in' portal
-            if portal in self.game.in_portals:
-                # If first time entered the portal
-                if not self.portal_collisions['in']:
-                    self.portal_collisions['in'] = True
-                    # search for 'out' portals with the same ID
-                    for out_portal in self.game.out_portals:
-                        if out_portal.id == portal.id:
-                            new_position = (out_portal.rect.x + self.rect.x - portal.rect.x, out_portal.rect.y + self.rect.y - portal.rect.y)
-                            self.new_entity = PhysicsEntity(self.groups(), self.game, new_position, self.rect.size, self.gravity)
-                            # Relative_position allows syncing of input and output PhysicsObjects when both are still alive
-                            self.new_entity.relative_position = pygame.Vector2(new_position) - pygame.Vector2(self.position.copy())
-                            self.new_entity.keys = None
-                            self.new_entity.velocity = self.velocity.copy()
-                            self.new_entity.acceleration = self.acceleration.copy()
-                else:
-                    self.new_entity.velocity = self.velocity.copy()
-                    self.new_entity.acceleration = self.acceleration.copy()
-                    self.new_entity.position = self.position + self.new_entity.relative_position
-            if portal in self.game.out_portals:
-                # If you left an 'in' portal
-                if self.portal_collisions['in']:
-                    self.new_entity.keys = self.keys # hand control over to new_entity
-                    self.kill()
+        if not self.game.no_portal_interact.has(self):
+            for portal in collision_sprites:
+                relative_position = self.position - portal.position
+                out_portals = []
+
+                for out_portal in self.game.all_portals:
+                    if out_portal.id == portal.id and portal != out_portal:
+                        out_portals.append(out_portal)
+
+                for i, out_portal in enumerate(out_portals):
+                    if portal.rect.contains(self):
+                        # if player is fully within the portal
+                        for entity in self.portal_entities:
+                            entity.keys = self.keys
+                        self.kill()
+                    else:
+                        # if player is overlapping with portal but not fully inside
+                        if len(self.portal_entities) > i:
+                            self.portal_entities[i].velocity = self.velocity.copy()
+                            self.portal_entities[i].acceleration = self.acceleration.copy()
+                            self.portal_entities[i].position = out_portal.position.copy() + relative_position
+                        else:
+                            self.portal_entities.insert(i, PhysicsEntity(self.groups(), self.game, out_portal.position.copy() + relative_position, self.rect.size, self.colour, self.gravity.copy()))
+                            self.portal_entities[i].keys = None
+                            self.game.no_portal_interact.add(self.portal_entities[i])
 
     def ground_drag(self):
         near_zero_threshold = 0.2  # Velocity threshold below which it is set to zero
