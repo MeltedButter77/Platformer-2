@@ -17,8 +17,7 @@ class Game:
         self.objects = pygame.sprite.Group()
         self.blocks = pygame.sprite.Group()
         self.all_portals = pygame.sprite.Group()
-        self.in_portals = pygame.sprite.Group()
-        self.out_portals = pygame.sprite.Group()
+        self.no_portal_interact = pygame.sprite.Group()
 
         map.load_map(self, 1)
 
@@ -27,8 +26,8 @@ class Game:
             self.screen.fill((0, 0, 100))
 
             self.all_sprites.update()
-            self.blocks.draw(self.screen)
             self.all_portals.draw(self.screen)
+            self.blocks.draw(self.screen)
             self.objects.draw(self.screen)
             self.players.draw(self.screen)
 
