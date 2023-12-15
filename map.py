@@ -9,14 +9,17 @@ def load_map(game, level_id):
 
     if level_id == 1:
         # Players
-        entities.PhysicsEntity([game.players], game, (130, 640), (12, 12), gravity=(0, 0.1))
-        entities.PhysicsEntity([game.players], game, (600, 700), (12, 12), gravity=(0, 0.1))
+        entities.PhysicsEntity([game.players], game, (130, 640), (12, 12), 'pink', gravity=(0, 0.1))
+        entities.PhysicsEntity([game.players], game, (600, 700), (12, 12), 'red', gravity=(0, 0.1))
 
         # Objects
-        entities.PhysicsEntity([game.objects], game, (720, 300), (12, 12), gravity=(0, 0.1)),
+        entities.PhysicsEntity([game.objects], game, (720, 300), (12, 12), 'orange', gravity=(0, 0.1)),
 
         # Portals
-        portal_info = []
+        portal_info = [
+            (300, 670, 50, 80, 'both', 1),
+            (500, 670, 50, 80, 'both', 1),
+        ]
 
         # Map wall Entities
         block_info = [
@@ -53,11 +56,11 @@ def load_map(game, level_id):
 
     elif level_id == 2:
         # Players
-        entities.PhysicsEntity([game.players], game, (320, 600), (12, 12), gravity=(0, 0.1))
-        entities.PhysicsEntity([game.players], game, (600, 600), (12, 12), gravity=(0, 0.1))
+        entities.PhysicsEntity([game.players], game, (320, 600), (12, 12), 'red', gravity=(0, 0.1))
+        entities.PhysicsEntity([game.players], game, (600, 600), (12, 12), 'pink', gravity=(0, 0.1))
 
         # Objects
-        entities.PhysicsEntity([game.objects], game, (720, 300), (12, 12), gravity=(0, 0.1)),
+        entities.PhysicsEntity([game.objects], game, (720, 300), (12, 12), 'orange', gravity=(0, 0.1)),
 
         # Portals
         portal_info = [
