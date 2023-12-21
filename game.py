@@ -15,6 +15,7 @@ class Game:
         self.all_sprites = pygame.sprite.Group()
         self.players = pygame.sprite.Group()
         self.objects = pygame.sprite.Group()
+        self.non_phy_objects = pygame.sprite.Group()
         self.blocks = pygame.sprite.Group()
         self.all_portals = pygame.sprite.Group()
         self.no_portal_interact = pygame.sprite.Group()
@@ -28,6 +29,7 @@ class Game:
             self.all_sprites.update()
             self.all_portals.draw(self.screen)
             self.blocks.draw(self.screen)
+            self.non_phy_objects.draw(self.screen)
             self.objects.draw(self.screen)
             self.players.draw(self.screen)
 

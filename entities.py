@@ -122,6 +122,7 @@ class PhysicsEntity(pygame.sprite.Sprite):
 
                     # drop entity
                     self.game.objects.add(self.carried_sprite)
+                    self.game.non_phy_objects.remove(self.carried_sprite)
                     self.carried_sprite = None
                     self.carried_sprite_relative_distance = 0
                 else:
@@ -135,6 +136,8 @@ class PhysicsEntity(pygame.sprite.Sprite):
                             nearest_distance = distance
 
                     if nearest_distance <= self.pickup_range:
+                        # carry sprite
+                        self.game.non_phy_objects.add(nearest_sprite)
                         self.game.objects.remove(nearest_sprite)
                         self.carried_sprite = nearest_sprite
                         self.carried_sprite_relative_distance = nearest_sprite.position - self.position
@@ -306,6 +309,8 @@ class PhysicsEntity(pygame.sprite.Sprite):
                         # if player is fully within the portal
                         for entity in self.portal_entities:
                             entity.keys = self.keys
+                            entity.carried_sprite = self.carried_sprite
+                            entity.carried_sprite_relative_distance = self.carried_sprite_relative_distance
                         self.kill()
                     else:
                         # if player is overlapping with portal but not fully inside
@@ -367,4 +372,3 @@ class PhysicsEntity(pygame.sprite.Sprite):
             if self.carried_sprite:
                 self.carried_sprite.position = self.position + self.carried_sprite_relative_distance
                 self.carried_sprite.rect.topleft = pygame.Vector2(round(self.carried_sprite.position.x), round(self.carried_sprite.position.y))
-                self.game.screen.blit(self.carried_sprite.image, self.carried_sprite.position)
