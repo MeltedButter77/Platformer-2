@@ -109,6 +109,8 @@ class PhysicsEntity(pygame.sprite.Sprite):
 
     def drop(self):
         self.carried_sprite.acceleration = pygame.Vector2(0, 0)
+        self.carried_sprite.velocity = pygame.Vector2(0, 0)
+        print("dropping", self.carried_sprite.velocity)
         self.carried_sprite = None
 
     def event_input(self, event):
@@ -120,14 +122,6 @@ class PhysicsEntity(pygame.sprite.Sprite):
 
             if event.key == self.keys['pickup']:
                 if self.carried_sprite:
-
-                    # Check if the object is colliding with anything
-                    for group in self.collision_groups:
-                        for sprite in pygame.sprite.spritecollide(self.carried_sprite, group, False):
-                            if sprite != self:
-                                print("Cant drop, colliding")
-                                return
-                    # drop entity
                     self.drop()
                 else:
                     # Calculate nearest_sprite
@@ -366,6 +360,7 @@ class PhysicsEntity(pygame.sprite.Sprite):
 
             # Check carry
             if self.carried_sprite:
+                print(self.carried_sprite.velocity)
                 distance = self.position - self.carried_sprite.position
                 if distance.length() > self.carry_distance:
                     self.carried_sprite.acceleration = distance.normalize()
@@ -373,4 +368,5 @@ class PhysicsEntity(pygame.sprite.Sprite):
                     self.carried_sprite.acceleration = -distance.normalize()
                 if distance.length() > 70:  # if the distance between object and self is higher than 40, drop the object
                     self.drop()
-                print(self.carried_sprite.acceleration)
+                    print("drop")
+
