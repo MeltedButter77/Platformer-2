@@ -20,7 +20,7 @@ class Game:
         self.all_portals = pygame.sprite.Group()
         self.no_portal_interact = pygame.sprite.Group()
 
-        map.load_map(self, 1)
+        map.load_map(self, 2)
 
     def run(self):
         while True:

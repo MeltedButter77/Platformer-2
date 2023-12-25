@@ -70,9 +70,10 @@ class PhysicsEntity(pygame.sprite.Sprite):
         self.keys = None
 
         # Carrying
-        self.pickup_range = 20
+        self.pickup_range = 25
         self.carried_sprite = None
-        self.carried_sprite_relative_distance = pygame.Vector2(0, 0)
+        self.carry_strength = 0.35
+        self.carry_distance = 25
 
         # Type-dependant variables
         if game.players in sprite_groups:
@@ -103,6 +104,13 @@ class PhysicsEntity(pygame.sprite.Sprite):
         self.jumps = 0
         self.jump_vel_carry_percentage = 0.8  # percentage of jump velocity retained when carrying another object
 
+    def carry(self, carried_entity):
+        self.carried_sprite = carried_entity
+
+    def drop(self):
+        self.carried_sprite.acceleration = pygame.Vector2(0, 0)
+        self.carried_sprite = None
+
     def event_input(self, event):
 
         if not self.keys:
@@ -119,12 +127,8 @@ class PhysicsEntity(pygame.sprite.Sprite):
                             if sprite != self:
                                 print("Cant drop, colliding")
                                 return
-
                     # drop entity
-                    self.game.objects.add(self.carried_sprite)
-                    self.game.non_phy_objects.remove(self.carried_sprite)
-                    self.carried_sprite = None
-                    self.carried_sprite_relative_distance = 0
+                    self.drop()
                 else:
                     # Calculate nearest_sprite
                     nearest_sprite = None
@@ -136,11 +140,7 @@ class PhysicsEntity(pygame.sprite.Sprite):
                             nearest_distance = distance
 
                     if nearest_distance <= self.pickup_range:
-                        # carry sprite
-                        self.game.non_phy_objects.add(nearest_sprite)
-                        self.game.objects.remove(nearest_sprite)
-                        self.carried_sprite = nearest_sprite
-                        self.carried_sprite_relative_distance = nearest_sprite.position - self.position
+                        self.carry(nearest_sprite)
 
             # Jump logic
             if self.jumps < self.max_jumps:
@@ -175,7 +175,7 @@ class PhysicsEntity(pygame.sprite.Sprite):
                     self.jumps = 0
 
                     if keys_pressed[self.keys['right']]:
-                        self.acceleration.x = self.movement_acceleration
+                        self.acceleration.x += self.movement_acceleration
                     elif keys_pressed[self.keys['left']]:
                         self.acceleration.x = -self.movement_acceleration
                     else:
@@ -191,16 +191,13 @@ class PhysicsEntity(pygame.sprite.Sprite):
                     self.jumps = 0
 
                     if keys_pressed[self.keys['down']]:
-                        self.acceleration.y = self.movement_acceleration
+                        self.acceleration.y += self.movement_acceleration
                     elif keys_pressed[self.keys['up']]:
-                        self.acceleration.y = -self.movement_acceleration
+                        self.acceleration.y += -self.movement_acceleration
                     else:
                         self.acceleration.y = 0
                 else:
                     self.acceleration.y = 0
-
-        else:
-            self.acceleration = pygame.Vector2(0, 0)
 
     def calc_touching(self):
 
@@ -310,7 +307,6 @@ class PhysicsEntity(pygame.sprite.Sprite):
                         for entity in self.portal_entities:
                             entity.keys = self.keys
                             entity.carried_sprite = self.carried_sprite
-                            entity.carried_sprite_relative_distance = self.carried_sprite_relative_distance
                         self.kill()
                     else:
                         # if player is overlapping with portal but not fully inside
@@ -370,5 +366,11 @@ class PhysicsEntity(pygame.sprite.Sprite):
 
             # Check carry
             if self.carried_sprite:
-                self.carried_sprite.position = self.position + self.carried_sprite_relative_distance
-                self.carried_sprite.rect.topleft = pygame.Vector2(round(self.carried_sprite.position.x), round(self.carried_sprite.position.y))
+                distance = self.position - self.carried_sprite.position
+                if distance.length() > self.carry_distance:
+                    self.carried_sprite.acceleration = distance.normalize()
+                elif distance.length() < self.carry_distance:
+                    self.carried_sprite.acceleration = -distance.normalize()
+                if distance.length() > 70:  # if the distance between object and self is higher than 40, drop the object
+                    self.drop()
+                print(self.carried_sprite.acceleration)

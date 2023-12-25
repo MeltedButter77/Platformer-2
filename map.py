@@ -64,8 +64,8 @@ def load_map(game, level_id):
 
         # Portals
         portal_info = [
-            (300, 670, 50, 80, 'in', 1),
-            (500, 670, 50, 80, 'out', 1),
+            (300, 670, 50, 80, 'both', 1),
+            (500, 670, 50, 80, 'both', 1),
         ]
 
         # Map wall Entities
